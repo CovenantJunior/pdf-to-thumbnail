@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PDF Thumbnail Generator</title>
+</head>
+<style>
+  img {
+    /*width: auto;
+    height: auto;
+    transform: translateY(-50%);*/
+  }
+</style>
+<body>
+  <input type="file" id="pdfFileInput" accept="application/pdf" />
+  <div id="thumbnailContainer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.8.335/pdf.min.js"></script>
+  <script>
+    // Function to generate thumbnail
+    function generateThumbnail(pdfData) {
+      // Load the PDF document
+      pdfjsLib.getDocument(pdfData).promise.then(function (pdf) {
+        // Fetch the first page
+        pdf.getPage(1).then(function (page) {
+          var viewport = page.getViewport({ scale: 0.5 });
+
+          // Calculate the cropped viewport dimensions
+          var croppedViewport = viewport.clone({ height: viewport.height / 2 });
+
+
+          var canvas = document.createElement("canvas");
+          var context = canvas.getContext("2d");
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          // Render the page content onto the canvas
+          page.render({ canvasContext: context, viewport: viewport }).promise.then(function () {
+            // Convert the canvas to an image and display it
+            var thumbnailImage = new Image();
+            thumbnailImage.src = canvas.toDataURL();
+            document.getElementById("thumbnailContainer").appendChild(thumbnailImage);
+          });
+        });
+      });
+    }
+
+    // Function to generate thumbnail
+    function generateThumbnailFromLink(pdfLink) {
+      // Fetch the PDF file
+      fetch(pdfLink)
+        .then(response => response.arrayBuffer())
+        .then(pdfData => {
+          // Load the PDF document
+          pdfjsLib.getDocument(pdfData).promise.then(function (pdf) {
+            // Fetch the first page
+            pdf.getPage(1).then(function (page) {
+              var viewport = page.getViewport({ scale: 0.5 });
+
+              // Calculate the cropped viewport dimensions
+              var croppedViewport = viewport.clone({ width: viewport.width / 2 });
+
+              var canvas = document.createElement("canvas");
+              var context = canvas.getContext("2d");
+              canvas.height = croppedViewport.height;
+              canvas.width = croppedViewport.width;
+
+              // Render the cropped page content onto the canvas
+              page.render({ canvasContext: context, viewport: croppedViewport }).promise.then(function () {
+                // Convert the canvas to an image and display it
+                var thumbnailImage = new Image();
+                thumbnailImage.src = canvas.toDataURL();
+                document.getElementById("thumbnailContainer").appendChild(thumbnailImage);
+              });
+            });
+          });
+        })
+        .catch(error => {
+          console.error("Error fetching the PDF:", error);
+        });
+    }
+
+
+    // Handle file input change event
+    document.getElementById("pdfFileInput").addEventListener("change", function (event) {
+      var file = event.target.files[0];
+
+      // Check if a file is selected
+      if (file) {
+        var fileReader = new FileReader();
+
+        // Read the file as an ArrayBuffer
+        fileReader.readAsArrayBuffer(file);
+
+        // Once the file is loaded, generate the thumbnail
+        fileReader.onload = function (event) {
+          var pdfData = new Uint8Array(event.target.result);
+          generateThumbnail(pdfData);
+        };
+      }
+    });
+  </script>
+</body>
+</html>
